@@ -59,7 +59,7 @@ mongoose.connection.on('error', (err) => {
 /**
  * Express configuration.
  */
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || 4000);
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 app.use(expressStatusMonitor());
@@ -89,7 +89,8 @@ app.use((req, res, next) => {
   if (req.path === '/api/upload') {
     next();
   } else {
-    lusca.csrf()(req, res, next);
+    //lusca.csrf()(req, res, next);
+    next();
   }
 });
 app.use(lusca.xframe('SAMEORIGIN'));
@@ -117,7 +118,7 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: 31557600000 }))
 /**
  * Primary app routes.
  */
-app.get('/', homeController.index);
+app.get('/', passportConfig.isAuthenticated, homeController.index);
 app.get('/login', userController.getLogin);
 app.post('/login', userController.postLogin);
 app.get('/logout', userController.logout);
@@ -167,6 +168,8 @@ app.post('/api/upload', upload.single('myFile'), apiController.postFileUpload);
 app.get('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.getPinterest);
 app.post('/api/pinterest', passportConfig.isAuthenticated, passportConfig.isAuthorized, apiController.postPinterest);
 app.get('/api/google-maps', apiController.getGoogleMaps);
+app.post('/api/jwt/generate', apiController.generateJwt);
+app.post('/api/jwt/check', apiController.checkJwt);
 
 /**
  * OAuth authentication routes. (Sign in)

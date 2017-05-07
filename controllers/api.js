@@ -1,5 +1,7 @@
 'use strict';
 
+const User = require('../models/User');
+const jwt = require('jwt-simple');
 const bluebird = require('bluebird');
 const request = bluebird.promisifyAll(require('request'), { multiArgs: true });
 const cheerio = require('cheerio');
@@ -625,4 +627,61 @@ exports.getGoogleMaps = (req, res) => {
   res.render('api/google-maps', {
     title: 'Google Maps API'
   });
+};
+
+var secret = 'AkshayJatinHarshita123654789';
+exports.generateJwt = (req, res) => {
+  //res.setHeader('Content-Type', 'application/json');
+  if(!req.body.user || !req.body.user.username || !req.body.user.password){
+    res.json({"success": "false", "msg": 'Invalid Input'});
+  }else{
+      let username = req.body.user.username;
+      let password = req.body.user.password;
+
+      let payload;
+      if(!req.body.payload){
+          payload = {}
+      }else{
+          payload = req.body.payload;
+      }
+
+      User.findOne({
+          email: username
+      }, function(err, user) {
+          if (err) throw err;
+
+          if (!user) {
+              res.json({success: "false", msg: 'Authentication failed'});
+          } else {
+              // check if password matches
+              user.comparePassword(password, function (err, isMatch) {
+                  if (isMatch && !err) {
+                      // if user is found and password is right create a token
+                      var token = jwt.encode(payload, secret);
+                      // return the information including token as JSON
+                      res.json({success: "true", token: token});
+                  } else {
+                      res.json({success: "false", msg: 'Authentication failed.'});
+                  }
+              });
+          }
+      })
+  }
+};
+
+exports.checkJwt = (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  if(!req.body.token){
+    res.json({"success": "false", msg: "Invalid Input"});
+  }else{
+    let decoded;
+    try{
+        decoded = jwt.decode(req.body.token, secret);
+    }catch(Exception){
+      res.json({"success": "false", msg:"Invalid token"});
+    }
+    if(decoded) {
+        res.json({"success": "true", payload: decoded});
+    }
+  }
 };
